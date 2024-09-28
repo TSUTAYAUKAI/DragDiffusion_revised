@@ -152,13 +152,19 @@ def train_lora(image,
                     text_encoder=text_encoder,
                     scheduler=noise_scheduler,
                     torch_dtype=torch.float16)
+        
+    print("Step 1")
 
     # set device and dtype
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
+    print("Step 2")
+
     vae.requires_grad_(False)
     text_encoder.requires_grad_(False)
     unet.requires_grad_(False)
+
+    print("Step 3")
 
     unet.to(device, dtype=torch.float16)
     vae.to(device, dtype=torch.float16)
