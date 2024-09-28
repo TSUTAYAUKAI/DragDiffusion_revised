@@ -170,6 +170,8 @@ def train_lora(image,
     vae.to(device, dtype=torch.float16)
     text_encoder.to(device, dtype=torch.float16)
 
+    print("Step 4")
+
     # Set correct lora layers
     unet_lora_parameters = []
     for attn_processor_name, attn_processor in unet.attn_processors.items():
@@ -232,7 +234,8 @@ def train_lora(image,
             unet_lora_parameters.extend(attn_module.add_k_proj.lora_layer.parameters())
             unet_lora_parameters.extend(attn_module.add_v_proj.lora_layer.parameters())
 
-
+    print("Step 5")
+        
     # Optimizer creation
     params_to_optimize = (unet_lora_parameters)
     optimizer = torch.optim.AdamW(
@@ -243,6 +246,8 @@ def train_lora(image,
         eps=1e-08,
     )
 
+    print("Step 6")
+        
     lr_scheduler = get_scheduler(
         "constant",
         optimizer=optimizer,
@@ -252,6 +257,8 @@ def train_lora(image,
         power=1.0,
     )
 
+    print("Step 7")
+        
     # prepare accelerator
     # unet_lora_layers = accelerator.prepare_model(unet_lora_layers)
     # optimizer = accelerator.prepare_optimizer(optimizer)
@@ -270,6 +277,8 @@ def train_lora(image,
         )
         text_embedding = text_embedding.repeat(lora_batch_size, 1, 1)
 
+    print("Step 8")
+        
     # initialize image transforms
     image_transforms_pil = transforms.Compose(
         [
@@ -283,6 +292,8 @@ def train_lora(image,
             transforms.Normalize([0.5], [0.5]),
         ]
     )
+
+    print("Step 9") 
 
     for step in progress.tqdm(range(lora_step), desc="training LoRA"):
         unet.train()
