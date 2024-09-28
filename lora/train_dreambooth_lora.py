@@ -661,6 +661,8 @@ def main(args):
         project_config=accelerator_project_config,
     )
 
+    print("step a")
+    
     if args.report_to == "wandb":
         if not is_wandb_available():
             raise ImportError("Make sure to install wandb if you want to use it for logging during training.")
@@ -675,6 +677,8 @@ def main(args):
             "Please set gradient_accumulation_steps to 1. This feature will be supported in the future."
         )
 
+    print("step b")
+    
     # Make one log on every process with the configuration for debugging.
     logging.basicConfig(
         format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
@@ -688,6 +692,8 @@ def main(args):
     else:
         transformers.utils.logging.set_verbosity_error()
         diffusers.utils.logging.set_verbosity_error()
+
+    print("step c")
 
     # If passed along, set the training seed now.
     if args.seed is not None:
@@ -739,6 +745,8 @@ def main(args):
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
 
+    print("step d")
+
     # Handle the repository creation
     if accelerator.is_main_process:
         if args.output_dir is not None:
@@ -759,6 +767,8 @@ def main(args):
             revision=args.revision,
             use_fast=False,
         )
+
+    print("step e")
 
     # import correct text encoder class
     text_encoder_cls = import_model_class_from_model_name_or_path(args.pretrained_model_name_or_path, args.revision)
@@ -781,11 +791,15 @@ def main(args):
         args.pretrained_model_name_or_path, subfolder="unet", revision=args.revision
     )
 
+    print("step f")
+
     # We only train the additional adapter LoRA layers
     if vae is not None:
         vae.requires_grad_(False)
     text_encoder.requires_grad_(False)
     unet.requires_grad_(False)
+
+    print("step g")
 
     # For mixed precision training we cast the text_encoder and vae weights to half-precision
     # as these models are only used for inference, keeping weights in full precision is not required.
@@ -794,6 +808,8 @@ def main(args):
         weight_dtype = torch.float16
     elif accelerator.mixed_precision == "bf16":
         weight_dtype = torch.bfloat16
+
+    print("step h")
 
     # Move unet, vae and text_encoder to device and cast to weight_dtype
     unet.to(accelerator.device, dtype=weight_dtype)
@@ -813,6 +829,8 @@ def main(args):
             unet.enable_xformers_memory_efficient_attention()
         else:
             raise ValueError("xformers is not available. Make sure it is installed correctly")
+
+    print("step i")
 
     # now we will add new LoRA weights to the attention layers
     # It's important to realize here how many attention weights will be added and of which sizes
@@ -853,6 +871,8 @@ def main(args):
     unet.set_attn_processor(unet_lora_attn_procs)
     unet_lora_layers = AttnProcsLayers(unet.attn_processors)
 
+    print("step j")
+
     # The text encoder comes from 🤗 transformers, so we cannot directly modify it.
     # So, instead, we monkey-patch the forward calls of its attention-blocks. For this,
     # we first load a dummy pipeline with the text encoder and then do the monkey-patching.
@@ -871,6 +891,8 @@ def main(args):
         temp_pipeline._modify_text_encoder(text_lora_attn_procs)
         text_encoder = temp_pipeline.text_encoder
         del temp_pipeline
+
+    print("step k")
 
     # create custom saving & loading hooks so that `accelerator.save_state(...)` serializes in a nice format
     def save_model_hook(models, weights, output_dir):
@@ -906,6 +928,8 @@ def main(args):
             text_encoder_lora_layers=text_encoder_lora_layers_to_save,
         )
 
+    print("step l")
+
     def load_model_hook(models, input_dir):
         # Note we DON'T pass the unet and text encoder here an purpose
         # so that the we don't accidentally override the LoRA layers of
@@ -931,6 +955,8 @@ def main(args):
 
     accelerator.register_save_state_pre_hook(save_model_hook)
     accelerator.register_load_state_pre_hook(load_model_hook)
+
+    print("step m")
 
     # Enable TF32 for faster training on Ampere GPUs,
     # cf https://pytorch.org/docs/stable/notes/cuda.html#tensorfloat-32-tf32-on-ampere-devices
@@ -969,6 +995,8 @@ def main(args):
         eps=args.adam_epsilon,
     )
 
+    print("step n")
+
     if args.pre_compute_text_embeddings:
 
         def compute_text_embeddings(prompt):
@@ -1006,6 +1034,8 @@ def main(args):
         validation_prompt_encoder_hidden_states = None
         validation_prompt_negative_prompt_embeds = None
         pre_computed_instance_prompt_encoder_hidden_states = None
+
+    print("step o")
 
     # Dataset and DataLoaders creation:
     train_dataset = DreamBoothDataset(
@@ -1068,6 +1098,8 @@ def main(args):
     if accelerator.is_main_process:
         accelerator.init_trackers("dreambooth-lora", config=vars(args))
 
+    print("step p")
+    
     # Train!
     total_batch_size = args.train_batch_size * accelerator.num_processes * args.gradient_accumulation_steps
 
@@ -1106,6 +1138,8 @@ def main(args):
             resume_global_step = global_step * args.gradient_accumulation_steps
             first_epoch = global_step // num_update_steps_per_epoch
             resume_step = resume_global_step % (num_update_steps_per_epoch * args.gradient_accumulation_steps)
+
+    print("step q")
 
     # Only show the progress bar once on each machine.
     progress_bar = tqdm(range(global_step, args.max_train_steps), disable=not accelerator.is_local_main_process)
@@ -1299,6 +1333,8 @@ def main(args):
 
                 del pipeline
                 torch.cuda.empty_cache()
+
+    print("step r")
 
     # Save the lora layers
     accelerator.wait_for_everyone()
